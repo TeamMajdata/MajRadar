@@ -247,6 +247,23 @@ public sealed class AnalysisAndRegressionTests
     }
 
     [Fact]
+    public async Task OneRuntimeCanAnalyzeTheSameChartConcurrently()
+    {
+        var chart = await SimaiParser.ParseChartAsync(
+            "(180){16}1,2,3,4,5,6,7,8,1-5[8:1],E");
+        var runtime = new RadarRuntime();
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 16)
+            .Select(_ => runtime.AnalyzeAsync(chart)));
+
+        Assert.All(results, result =>
+            Assert.True(result.IsSuccess, string.Join("; ", result.Errors)));
+        foreach (var name in RadarOutputDimensions.DefaultOrder)
+            Assert.All(results.Skip(1), result =>
+                Assert.Equal(results[0].RawValues[name], result.RawValues[name]));
+    }
+
+    [Fact]
     public async Task UngroupedNoHeadSlideContributesToIntensityButNotSlideGroupFeatures()
     {
         var adapted = await new MajSimaiChartAdapter().ParseAndAdaptAsync(

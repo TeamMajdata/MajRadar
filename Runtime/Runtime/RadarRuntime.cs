@@ -50,7 +50,11 @@ public sealed class RadarResult
                              Errors.Count == 0 && !IsCancelled;
 }
 
-/// <summary>Unity-free public entry point for Play and standalone callers.</summary>
+/// <summary>
+/// Unity-free public entry point for Play and standalone callers. Instances do
+/// not retain chart or result state and may be reused concurrently when the
+/// injected extended-Slide provider is thread-safe.
+/// </summary>
 public sealed class RadarRuntime
 {
     private readonly MajSimaiChartAdapter _adapter;
