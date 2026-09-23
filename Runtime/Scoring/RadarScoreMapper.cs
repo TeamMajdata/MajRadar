@@ -9,7 +9,8 @@ namespace MajRadar.Scoring;
 /// <summary>Frozen visualizer mapping applied after raw analysis and regression.</summary>
 internal sealed class RadarScoreMapper
 {
-    internal const string MappingVersion = "mapping-profile-2026-09-16T15-44-08-825Z";
+    internal const string MappingVersion =
+        "mapping-profile-2026-09-16T15-44-08-825Z-headroom-250-preview";
     private const double MaximumScore = 250;
 
     // Fixed calibration for the seven raw dimensions. FittedConstant is appended

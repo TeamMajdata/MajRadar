@@ -6,6 +6,7 @@ namespace MajRadar.Analysis;
 
 public sealed class RadarAnalyzer
 {
+    // Resource boundary retained from the optimized MajdataPlay implementation.
     private const int MaximumChartEvents = 40_000;
     // Keep this fixed execution/output order identical to ModelInputOrder.
     // Display-axis selection belongs after scoring and must not edit this list.
