@@ -12,8 +12,8 @@ MajRadar 是一个独立的的Simai谱面雷达分析和拟合定数估计组件
 
 建议由宿主的雷达服务创建一个 `RadarRuntime`，并在应用生命周期内跨选歌复用。
 `RadarRuntime` 不缓存谱面或结果，也不保留单次分析状态。它是普通对象而不是全局
-静态单例，便于测试和其他宿主注入不同的扩展 Slide 实现。
-
+静态单例，便于测试和其他宿主注入不同的扩展 Slide 实现。为了避免代码重复，MajSimai的拓展`Slidecode`星星的长度计算交给Play内部的组件负责，因而需要依赖注入。
+此Provider将同步到Play仓库里。
 ```csharp
 private readonly RadarRuntime _runtime =
     new(new PlayExtendedSlideBarCountProvider());
