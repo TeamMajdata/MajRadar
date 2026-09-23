@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>MajRadar</AssemblyName>
+    <RootNamespace>MajRadar</RootNamespace>
+    <PackageId>TeamMajdata.MajRadar</PackageId>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>Team Majdata</Authors>
+    <Description>Radar analysis and constant estimation for Simai charts.</Description>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/TeamMajdata/MajRadar</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Runtime/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MajSimaiProject)' == ''">
+    <PackageReference Include="Lingfeng-bbben.MajSimai" Version="2.2.2" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MajSimaiProject)' != ''">
+    <ProjectReference Include="$(MajSimaiProject)" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
