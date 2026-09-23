@@ -1,0 +1,40 @@
+name: Publish NuGet
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - id: version
+        name: Select package version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            value="${GITHUB_REF_NAME#v}"
+          else
+            prefix="$(dotnet msbuild MajRadar.csproj -nologo -getProperty:VersionPrefix)"
+            value="${prefix}-ci.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "value=$value" >> "$GITHUB_OUTPUT"
+      - run: dotnet restore MajRadar.slnx
+      - run: dotnet test MajRadar.slnx --no-restore -c Release
+      - run: >-
+          dotnet pack MajRadar.csproj --no-restore -c Release -o artifacts
+          -p:PackageVersion=${{ steps.version.outputs.value }}
+      - name: Publish package
+        run: >-
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key "${{ secrets.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
