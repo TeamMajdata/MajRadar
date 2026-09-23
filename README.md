@@ -112,6 +112,10 @@ MajdataPlay 应在现有 MajSimai submodule 旁固定 MajRadar submodule。Unity
 `MajRadar.asmdef` 编译 `Runtime/`，该程序集引用项目内唯一的 `MajSimai` 程序集。
 同一个 Unity 项目中不要再安装 MajRadar NuGet 包。
 
+MajRadar 是纯代码组件，仓库会忽略 submodule 内由 Unity 生成的 `*.meta`。Play 仓库仍应
+提交 submodule 目录本身对应的 `Assets/Plugins/MajRadar.meta`。如果未来加入 prefab、
+ScriptableObject 或其他依赖稳定 GUID 的资源，需要重新评估此策略。
+
 ### .NET 与 NuGet
 
 ```sh
@@ -275,6 +279,12 @@ MajdataPlay should pin MajRadar as a Git submodule beside its existing MajSimai
 submodule. Unity compiles `Runtime/` through `MajRadar.asmdef`, which references
 the single existing `MajSimai` assembly. Do not install the MajRadar NuGet package
 into the same Unity project.
+
+MajRadar is code-only and ignores Unity-generated `*.meta` files inside the
+submodule. The Play repository should still commit the
+`Assets/Plugins/MajRadar.meta` file for the submodule directory itself. Revisit
+this policy if the package later adds prefabs, ScriptableObjects, or other assets
+that require stable GUIDs.
 
 ### .NET and NuGet
 
