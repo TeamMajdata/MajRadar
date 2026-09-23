@@ -17,5 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../MajRadar.csproj" />
+    <Compile Include="../../Samples~/MajdataPlay/ChartRadarService.cs"
+             Link="Samples/ChartRadarService.cs" />
   </ItemGroup>
 </Project>

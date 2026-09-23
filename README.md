@@ -29,6 +29,22 @@ private readonly RadarRuntime _runtime =
 
 ### 调用 Runtime
 
+MajdataPlay 推荐直接复制 `Samples~/MajdataPlay` 中的薄调用层。sample 已经把唯一的
+`PlayExtendedSlideBarCountProvider` 固定注入到长期持有的 `RadarRuntime`，调用方不需要
+factory、options 或按请求切换依赖：
+
+```csharp
+private readonly ChartRadarService _chartRadarService = new();
+
+ChartRadarSnapshot snapshot = await _chartRadarService.AnalyzeAsync(
+    simaiChart,
+    cancellationToken);
+```
+
+不要在每次分析时 `new ChartRadarService()`；由显示当前谱面的组件持有一个 service，
+切歌时只更换 token 和 selection generation。sample 返回轻量 `ChartRadarSnapshot`，不会
+让 UI 缓存继续持有完整的适配事件和七维分析对象。
+
 已有 MajSimai 解析结果时，优先复用现成的谱面：
 
 ```csharp
@@ -169,6 +185,24 @@ used with it must not access Unity main-thread-only objects. Play's provider is
 suitable because it creates a local Slide path and uses only pure geometry.
 
 ### Calling the runtime
+
+MajdataPlay should copy the thin integration layer from `Samples~/MajdataPlay`.
+The sample wires the single `PlayExtendedSlideBarCountProvider` directly into a
+long-lived `RadarRuntime`; callers do not need factories, options, or per-request
+dependency selection:
+
+```csharp
+private readonly ChartRadarService _chartRadarService = new();
+
+ChartRadarSnapshot snapshot = await _chartRadarService.AnalyzeAsync(
+    simaiChart,
+    cancellationToken);
+```
+
+Do not construct a new `ChartRadarService` for every analysis. The component
+that owns the current chart should retain one service and replace only its token
+and selection generation. The sample returns a lightweight snapshot so UI caches
+do not retain the full adapted event list and seven-dimension analysis graph.
 
 Reuse an existing chart parsed by MajSimai whenever possible:
 

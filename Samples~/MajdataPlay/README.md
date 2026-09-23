@@ -1,12 +1,14 @@
 # MajdataPlay integration
 
-Copy `PlayExtendedSlideBarCountProvider.cs` into the Play assembly and construct
-one reusable runtime instance:
+Copy both C# files into `Assets/Scripts/Utils/ChartRadar/`. The service wires the
+single Play geometry implementation directly into one reusable `RadarRuntime`.
+Callers only hold the service:
 
 ```csharp
-private readonly RadarRuntime _radar =
-    new(new PlayExtendedSlideBarCountProvider());
+private readonly ChartRadarService _chartRadarService = new();
+
+var snapshot = await _chartRadarService.AnalyzeAsync(chart, cancellationToken);
 ```
 
-Pass Play's existing `SimaiChart` to `_radar.Analyze(chart, token)`. Play remains
-responsible for selection caching, cancellation ownership, logging, and UI.
+Play remains responsible for selection generation, cancellation ownership,
+logging, UI updates, and caching the lightweight `ChartRadarSnapshot`.
