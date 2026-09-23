@@ -6,9 +6,7 @@
 
 ## 中文
 
-MajRadar 是一个不依赖 Unity 的 Simai 谱面雷达分析和拟合定数估计组件。
-它接收 MajSimai 输出的类型化 `SimaiChart`，保留谱面相对时间，计算固定七维
-raw 特征，运行冻结的回归模型，并映射对外展示的雷达轴。
+MajRadar 是一个独立的的Simai谱面雷达分析和拟合定数估计组件。通过分析`SimaiChart`格式的已解析谱面计算固定七维特征产生雷达轴和拟合定数。
 
 ### Runtime 生命周期
 
@@ -45,7 +43,7 @@ RadarResult result = await _runtime.AnalyzeAsync(
     cancellationToken);
 ```
 
-独立调用方只有一段 inote 文本时，可以使用：
+只有一段 inote 文本时，可以使用：
 
 ```csharp
 RadarResult result = await _runtime.ParseAndAnalyzeAsync(
@@ -53,13 +51,9 @@ RadarResult result = await _runtime.ParseAndAnalyzeAsync(
     cancellationToken);
 ```
 
-`ParseAndAnalyzeAsync` 只是便利边界，不是歌曲加载器。文件、歌曲 metadata、谱面类型、
-曲绘和音频 offset 仍由调用方管理。
+### Slidecode 依赖
 
-### Extended Slide 依赖
-
-扩展 `K` Slide 的游戏几何由宿主提供。MajRadar 只保留一个窄接口，不引用
-MajdataPlay：
+扩展Slidecode的长度算法需要依赖Play自身的Parser。
 
 ```csharp
 internal sealed class PlayExtendedSlideBarCountProvider
@@ -72,12 +66,9 @@ internal sealed class PlayExtendedSlideBarCountProvider
     }
 }
 ```
-
-provider 接收规范化后的 SlideCode，例如 `1P6K7`，并且必须返回正数 arrow/bar count。
+provider只接受SlideCode，例如 `1P6K7`，并且必须返回正数 arrow/bar count。
 provider 抛出的异常或非正结果会变成结构化适配失败。未提供 provider 时，普通谱面仍可
-正常分析；遇到 `K` Slide 会返回错误，而不是猜测几何。
-
-普通 Slide、特征参数、回归系数和 score 映射均内置，不参与依赖注入。
+正常分析；遇到 `K` Slide 会返回错误
 
 ### 取消与选歌状态
 
@@ -88,20 +79,15 @@ if (result.IsCancelled)
     return;
 ```
 
-- `Analyze` 在适配过程、各特征维度之间，以及高复杂度 Sweep 的候选、family、手部
-  动态规划和选择循环中检查 token。
-- 其他维度在特征或有界 section 边界检查。
-- `AnalyzeAsync` 不会强制终止工作线程；它会在下一个检查点返回
+- `AnalyzeAsync`会在下一个检查点返回
   `Status == "cancelled"` 的 `RadarResult`。
-- MajSimai 没有提供解析中途取消，因此 `ParseAndAnalyzeAsync` 会在解析前检查一次，
-  并在 parser 返回后立即再次检查。
-- 同步 provider 应保持短小且有界，调用中途不会被取消。
+- MajSimai 没有提供解析中途取消，因此 `ParseAndAnalyzeAsync` 只能parser 返回后立即再次检查。
+- 同步provider应调用中途不会被取消。
 
-宿主应为当前选歌持有一个 `CancellationTokenSource`。歌曲或难度变化时，取消上一份
-token、启动新分析，并丢弃 selection generation 已经过期的结果。仅取消还不够，因为旧任务
-可能恰好在新选歌后完成。
+应为当前选歌持有一个 `CancellationTokenSource`。歌曲或难度变化时，取消上一份
+token、启动新分析，并丢弃过期的结果。
 
-### 结果契约
+### 结果处理方式
 
 ```csharp
 if (result.IsSuccess)
@@ -115,13 +101,11 @@ else if (!result.IsCancelled)
 }
 ```
 
-- `Analysis.Features` 包含模型使用的固定七维 raw，包括内部维度 `slide_cumulate`。
-- `RawValues` 和 `Scores` 始终保持固定公开形状：六个雷达轴加
+- `Analysis.Features` 包含模型使用的固定七维，包括内部维度 `slide_cumulate`。
+- `RawValues` 和 `Scores` 始终保持公开形状：六个雷达轴加
   `fitted_constant`；不可用项为 `null`。
 - 只有七维 raw 全部成功时才生成 `FittedConstant` 和映射后的 score。
 - `partial` 会保留已完成的特征，但不会生成拟合定数。
-- `fitted_constant` 使用恒等映射，不属于雷达轴的 0–250 标度。
-
 ### MajdataPlay 源码接入
 
 MajdataPlay 应在现有 MajSimai submodule 旁固定 MajRadar submodule。Unity 通过
@@ -135,17 +119,15 @@ dotnet test MajRadar.slnx
 dotnet pack MajRadar.csproj -c Release
 ```
 
-NuGet 包以 `netstandard2.1` 为目标，并声明一个 MajSimai 包依赖。Pull Request 会执行
-构建与测试；main 分支 push 发布唯一的 CI 预发行版本，`v*` tag 发布正式版本。
-
-兼容性测试可以直接引用与 Play pin 一致的 MajSimai 源码项目：
+NuGet包以 `netstandard2.1` 为目标，包含MajSimai包依赖。Pull Request 会执行
+构建与测试；main在push发布prerelease，在v标签发布正式版。
+兼容性测试可以直接引用与Play一致的 MajSimai 源码项目：
 
 ```sh
 dotnet test MajRadar.slnx \
   -p:MajSimaiProject=/absolute/path/to/MajSimai.csproj
 ```
 
-歌曲发现、metadata、音频 offset、visualizer、训练和实验管线均明确留在 Runtime 组件之外。
 
 ---
 
