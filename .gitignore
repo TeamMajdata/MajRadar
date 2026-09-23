@@ -1,5 +1,6 @@
 # Unity-generated directories
 .utmp/
+*.meta
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
