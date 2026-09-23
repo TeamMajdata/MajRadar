@@ -1,0 +1,18 @@
+{
+  "name": "net.majdata.majradar",
+  "displayName": "MajRadar",
+  "version": "0.1.0",
+  "unity": "6000.0",
+  "description": "Radar analysis and constant estimation for Simai charts.",
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "dev.majdata.majsimai": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "MajdataPlay integration",
+      "description": "Extended Slide provider using MajdataPlay gameplay geometry.",
+      "path": "Samples~/MajdataPlay"
+    }
+  ]
+}

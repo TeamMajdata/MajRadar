@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+  # publish.yml calls both jobs on the commit being published.
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore MajRadar.slnx
+
+      - name: Test default dependencies
+        run: dotnet test MajRadar.slnx --no-restore -c Release
+
+      - name: Verify package build
+        run: dotnet pack MajRadar.csproj --no-restore -c Release -o artifacts
+
+      - name: Upload CI package
+        uses: actions/upload-artifact@v4
+        with:
+          name: MajRadar-nuget
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+
+  play-majsimai-pin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout pinned MajSimai
+        uses: actions/checkout@v4
+        with:
+          repository: TeamMajdata/MajSimai
+          ref: fdb2a3e39d8997a0abbf8b4679062d854473cc77
+          path: external/MajSimai
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore with pinned MajSimai
+        run: >-
+          dotnet restore MajRadar.slnx
+          -p:MajSimaiProject="$GITHUB_WORKSPACE/external/MajSimai/MajSimai.csproj"
+
+      - name: Test with pinned MajSimai
+        run: >-
+          dotnet test MajRadar.slnx --no-restore -c Release
+          -p:MajSimaiProject="$GITHUB_WORKSPACE/external/MajSimai/MajSimai.csproj"

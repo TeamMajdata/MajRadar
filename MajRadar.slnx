@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MajRadar.csproj" />
+  <Project Path="Tests~/MajRadar.Tests/MajRadar.Tests.csproj" />
+</Solution>
