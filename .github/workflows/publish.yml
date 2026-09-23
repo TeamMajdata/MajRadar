@@ -2,20 +2,34 @@ name: Publish NuGet
 
 on:
   push:
+    # main pushes publish preview packages; v* tags select an explicit version.
     branches:
       - main
     tags:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
   publish:
+    # Both CI jobs must pass before this job starts.
+    needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
       - id: version
         name: Select package version
         shell: bash
@@ -24,17 +38,49 @@ jobs:
             value="${GITHUB_REF_NAME#v}"
           else
             prefix="$(dotnet msbuild MajRadar.csproj -nologo -getProperty:VersionPrefix)"
+            if [[ -z "$prefix" ]]; then
+              echo "::error::VersionPrefix is empty. Set it in MajRadar.csproj or Directory.Build.props."
+              exit 1
+            fi
             value="${prefix}-ci.${GITHUB_RUN_NUMBER}"
           fi
+          if [[ -z "$value" ]]; then
+            echo "::error::The version tag must contain a NuGet version after v."
+            exit 1
+          fi
           echo "value=$value" >> "$GITHUB_OUTPUT"
-      - run: dotnet restore MajRadar.slnx
-      - run: dotnet test MajRadar.slnx --no-restore -c Release
-      - run: >-
+
+      - name: Restore
+        run: dotnet restore MajRadar.slnx
+
+      - name: Build release package
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
+        run: >-
           dotnet pack MajRadar.csproj --no-restore -c Release -o artifacts
-          -p:PackageVersion=${{ steps.version.outputs.value }}
+          -p:PackageVersion="$PACKAGE_VERSION"
+
+      - name: Upload versioned package
+        uses: actions/upload-artifact@v4
+        with:
+          name: MajRadar-${{ steps.version.outputs.value }}
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+
+      # Repository variable NUGET_USER is your nuget.org username, not email.
+      # Register this repository and publish.yml in NuGet Trusted Publishing.
+      - name: NuGet login
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
       - name: Publish package
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        # An existing version is skipped on rerun; it is never overwritten.
         run: >-
           dotnet nuget push "artifacts/*.nupkg"
-          --api-key "${{ secrets.NUGET_API_KEY }}"
+          --api-key "$NUGET_API_KEY"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
