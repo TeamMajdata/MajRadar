@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - dev
+      - **
   # publish.yml calls both jobs on the commit being published.
   workflow_call:
 
