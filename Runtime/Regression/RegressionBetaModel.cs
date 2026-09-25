@@ -6,6 +6,10 @@ namespace MajRadar.Regression;
 
 public sealed class RegressionBetaModel
 {
+    // Output limits can be tuned independently of the fitted coefficients.
+    internal const double MinimumFittedConstant = 0;
+    internal const double MaximumFittedConstant = 18;
+
     public IReadOnlyList<string> InputFeatures => RadarFeatureNames.ModelInputOrder;
 
     public double Predict(IReadOnlyList<double> rawValues)
@@ -32,7 +36,7 @@ public sealed class RegressionBetaModel
                 result += coefficients[coefficientIndex++] * normalized[left] * normalized[right];
         if (coefficientIndex != coefficients.Length || double.IsNaN(result) || double.IsInfinity(result))
             throw new InvalidOperationException("Regression prediction is invalid.");
-        return result;
+        return Math.Clamp(result, MinimumFittedConstant, MaximumFittedConstant);
     }
 
     public double Predict(IReadOnlyDictionary<string, double> rawFeatures)

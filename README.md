@@ -110,6 +110,8 @@ else if (!result.IsCancelled)
 - `RawValues` 和 `Scores` 始终保持公开形状：六个雷达轴加
   `fitted_constant`；不可用项为 `null`。
 - 只有七维 raw 全部成功时才生成 `FittedConstant` 和映射后的 score。
+- 拟合输出在模块内部限位；上下限由 `RegressionBetaModel` 的
+  `MinimumFittedConstant` / `MaximumFittedConstant` 常量配置，当前为 0～18。
 - `partial` 会保留已完成的特征，但不会生成拟合定数。
 
 
@@ -266,6 +268,8 @@ else if (!result.IsCancelled)
   axes plus `fitted_constant`; unavailable entries are `null`.
 - `FittedConstant` and mapped scores are produced only when all seven raw
   features succeed.
+- Predictions are clamped inside the module using `MinimumFittedConstant` and
+  `MaximumFittedConstant` in `RegressionBetaModel` (currently 0 and 18).
 - `partial` preserves completed feature results but does not produce a fitted
   constant.
 - `fitted_constant` is identity-mapped and is not on the radar axes' 0-250
