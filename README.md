@@ -21,6 +21,19 @@ ChartRadarSnapshot snapshot = await ChartRadarService.AnalyzeAsync(
 静态 facade 只持有无单谱状态的 Runtime；显示当前谱面的组件仍负责 token、selection
 generation 和缓存。sample 返回 `ChartRadarSnapshot`
 
+固定维度可以通过 enum 直接读取，同时保留原有字符串字典接口：
+
+```csharp
+double? noteScore = snapshot.GetScore(RadarOutputDimension.Note);
+double? trickyRaw = snapshot.GetRawValue(RadarOutputDimension.SlideTricky);
+
+// 动态 UI 和现有代码仍可直接使用字符串 key。
+double? sameNoteScore = snapshot.Scores["note"];
+```
+
+`RadarOutputDimension` 只包含公开的六个雷达轴和 `FittedConstant`，不包含仅用于拟合的
+`slide_cumulate`。拟合定数仍优先从 `snapshot.FittedConstant` 读取。
+
 已有 MajSimai 解析结果时，优先复用现成的谱面：
 
 ```csharp
@@ -139,6 +152,21 @@ The static facade retains only the Runtime, which has no per-chart state. The
 component that owns the current chart still owns its token, selection generation,
 and cache. The sample returns a lightweight snapshot so UI caches do not retain
 the full adapted event list and seven-dimension analysis graph.
+
+Known dimensions can be read through the enum while the existing string-keyed
+dictionaries remain available:
+
+```csharp
+double? noteScore = snapshot.GetScore(RadarOutputDimension.Note);
+double? trickyRaw = snapshot.GetRawValue(RadarOutputDimension.SlideTricky);
+
+// Existing and dynamic UI code can keep using literal keys.
+double? sameNoteScore = snapshot.Scores["note"];
+```
+
+`RadarOutputDimension` contains the six public radar axes and
+`FittedConstant`; it intentionally excludes the internal regression-only
+`slide_cumulate`. Prefer `snapshot.FittedConstant` when reading the fitted value.
 
 Reuse an existing chart parsed by MajSimai whenever possible:
 

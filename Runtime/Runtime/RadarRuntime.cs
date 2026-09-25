@@ -11,6 +11,18 @@ using System.Linq;
 using System.Threading.Tasks;
 namespace MajRadar.Runtime;
 
+/// <summary>Fixed public values exposed by <see cref="RadarResult"/>.</summary>
+public enum RadarOutputDimension
+{
+    Note,
+    Peak,
+    Sweep,
+    SlideTricky,
+    SlideSequence,
+    Jack,
+    FittedConstant
+}
+
 /// <summary>Stable public scalar projection for Play and other UI callers.</summary>
 public static class RadarOutputDimensions
 {
@@ -26,6 +38,18 @@ public static class RadarOutputDimensions
     {
         Note, Peak, Sweep, SlideTricky, SlideSequence, Jack, FittedConstant
     });
+
+    public static string Key(RadarOutputDimension dimension) => dimension switch
+    {
+        RadarOutputDimension.Note => Note,
+        RadarOutputDimension.Peak => Peak,
+        RadarOutputDimension.Sweep => Sweep,
+        RadarOutputDimension.SlideTricky => SlideTricky,
+        RadarOutputDimension.SlideSequence => SlideSequence,
+        RadarOutputDimension.Jack => Jack,
+        RadarOutputDimension.FittedConstant => FittedConstant,
+        _ => throw new ArgumentOutOfRangeException(nameof(dimension))
+    };
 
     internal static IReadOnlyDictionary<string, double?> EmptyValues() =>
         DefaultOrder.ToDictionary(name => name, _ => (double?)null);
