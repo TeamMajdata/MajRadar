@@ -8,30 +8,9 @@
 
 MajRadar 是一个独立的的Simai谱面雷达分析和拟合定数估计组件。通过分析`SimaiChart`格式的已解析谱面计算固定七维特征产生雷达轴和拟合定数。
 
-### Runtime 生命周期
+### 调用
 
-建议由宿主的雷达服务创建一个 `RadarRuntime`，并在应用生命周期内跨选歌复用。
-`RadarRuntime` 不缓存谱面或结果，也不保留单次分析状态。它是普通对象而不是全局
-静态单例，便于测试和其他宿主注入不同的扩展 Slide 实现。为了避免代码重复，MajSimai的拓展`Slidecode`星星的长度计算交给Play内部的组件负责，因而需要依赖注入。
-此Provider将同步到Play仓库里。
-```csharp
-private readonly RadarRuntime _runtime =
-    new(new PlayExtendedSlideBarCountProvider());
-```
-
-满足以下条件时，同一 Runtime 可以并发分析多张谱面：
-
-- 注入的 `IExtendedSlideBarCountProvider` 无状态且线程安全；
-- 分析期间调用方不修改传入的 `SimaiChart` 或 `RadarChartInput`。
-
-`AnalyzeAsync` 在线程池运行同步分析。与它一起使用的 provider 不能访问仅限 Unity
-主线程的对象。Play provider 每次创建局部 Slide 路径，并且只调用纯几何计算，符合此约束。
-
-### 调用 Runtime
-
-MajdataPlay 推荐直接复制 `Samples~/MajdataPlay` 中的静态薄调用层。sample 已经把唯一的
-`PlayExtendedSlideBarCountProvider` 固定注入到一个长期复用的 `RadarRuntime`，调用方
-不需要持有 service，也不需要 factory、options 或按请求切换依赖：
+推荐直接复制 `Samples~/MajdataPlay` 中的静态薄调用层。
 
 ```csharp
 ChartRadarSnapshot snapshot = await ChartRadarService.AnalyzeAsync(
@@ -40,8 +19,7 @@ ChartRadarSnapshot snapshot = await ChartRadarService.AnalyzeAsync(
 ```
 
 静态 facade 只持有无单谱状态的 Runtime；显示当前谱面的组件仍负责 token、selection
-generation 和缓存。sample 返回轻量 `ChartRadarSnapshot`，不会让 UI 缓存继续持有完整的
-适配事件和七维分析对象。
+generation 和缓存。sample 返回 `ChartRadarSnapshot`
 
 已有 MajSimai 解析结果时，优先复用现成的谱面：
 
@@ -120,15 +98,7 @@ else if (!result.IsCancelled)
   `fitted_constant`；不可用项为 `null`。
 - 只有七维 raw 全部成功时才生成 `FittedConstant` 和映射后的 score。
 - `partial` 会保留已完成的特征，但不会生成拟合定数。
-### MajdataPlay 源码接入
 
-MajdataPlay 应在现有 MajSimai submodule 旁固定 MajRadar submodule。Unity 通过
-`MajRadar.asmdef` 编译 `Runtime/`，该程序集引用项目内唯一的 `MajSimai` 程序集。
-同一个 Unity 项目中不要再安装 MajRadar NuGet 包。
-
-MajRadar 是纯代码组件，仓库会忽略 submodule 内由 Unity 生成的 `*.meta`。Play 仓库仍应
-提交 submodule 目录本身对应的 `Assets/Plugins/MajRadar.meta`。如果未来加入 prefab、
-ScriptableObject 或其他依赖稳定 GUID 的资源，需要重新评估此策略。
 
 ### .NET 与 NuGet
 
@@ -137,14 +107,7 @@ dotnet test MajRadar.slnx
 dotnet pack MajRadar.csproj -c Release
 ```
 
-NuGet包以 `netstandard2.1` 为目标，包含MajSimai包依赖。Pull Request 会执行
-构建与测试；main在push发布prerelease，在v标签发布正式版。
-兼容性测试可以直接引用与Play一致的 MajSimai 源码项目：
-
-```sh
-dotnet test MajRadar.slnx \
-  -p:MajSimaiProject=/absolute/path/to/MajSimai.csproj
-```
+NuGet包以 `netstandard2.1` 为目标，包含MajSimai包依赖。
 
 
 ---
@@ -157,30 +120,6 @@ MajRadar is a Unity-free radar analyser and fitted-constant estimator for Simai
 charts. It consumes MajSimai's typed `SimaiChart`, preserves chart-relative
 timing, computes seven fixed raw features, applies the frozen regression model,
 and maps the public radar axes.
-
-### Runtime lifetime
-
-Create one `RadarRuntime` for the lifetime of the host radar service and reuse
-it across chart selections. `RadarRuntime` does not cache charts or results and
-does not retain per-analysis state. It is intentionally a normal object rather
-than a global singleton so tests and other hosts can supply different extended
-Slide implementations.
-
-```csharp
-private readonly RadarRuntime _runtime =
-    new(new PlayExtendedSlideBarCountProvider());
-```
-
-The same runtime may analyze multiple charts concurrently when both conditions
-below hold:
-
-- the injected `IExtendedSlideBarCountProvider` is stateless and thread-safe;
-- callers do not mutate a supplied `SimaiChart` or `RadarChartInput` while it is
-  being analyzed.
-
-`AnalyzeAsync` executes the synchronous analysis on the thread pool. A provider
-used with it must not access Unity main-thread-only objects. Play's provider is
-suitable because it creates a local Slide path and uses only pure geometry.
 
 ### Calling the runtime
 
