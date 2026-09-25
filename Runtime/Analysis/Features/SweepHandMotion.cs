@@ -2,6 +2,9 @@ namespace MajRadar.Analysis.Features;
 
 using System.Buffers;
 using System.Threading;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>Two-hand displacement DP used by Sweep burst motion scoring.</summary>
 internal static class SweepHandMotion
