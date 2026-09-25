@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace MajRadar.Analysis.Features;
 
 internal sealed class NoteDensityAnalyzer : IRadarFeatureAnalyzer
