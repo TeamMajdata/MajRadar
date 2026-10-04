@@ -21,7 +21,7 @@
     <Compile Include="Runtime/**/*.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(MajSimaiProject)' == ''">
-    <PackageReference Include="Lingfeng-bbben.MajSimai" Version="2.2.2" />
+    <PackageReference Include="Lingfeng-bbben.MajSimai" Version="2.2.3" />
   </ItemGroup>
   <ItemGroup Condition="'$(MajSimaiProject)' != ''">
     <ProjectReference Include="$(MajSimaiProject)" />
