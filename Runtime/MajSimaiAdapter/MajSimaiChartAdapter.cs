@@ -27,7 +27,7 @@ public sealed class MajSimaiChartAdapter
 
     public MajSimaiChartAdapter(IExtendedSlideBarCountProvider? extendedSlides = null)
     {
-        _slidePaths = new SlidePathResolver(extendedSlides);
+        _slidePaths = new SlidePathResolver(extendedSlides ?? DefaultExtendedSlideBarCountProvider.Instance);
     }
 
     public async Task<AdaptationResult> ParseAndAdaptAsync(

@@ -1,4 +1,5 @@
 using MajRadar.MajSimaiAdapter;
+using MajRadar.Runtime;
 using Xunit;
 
 namespace MajdataPlay.Utils.ChartRadar
@@ -15,6 +16,21 @@ namespace MajRadar.Tests
 
     public sealed class PlayIntegrationSampleTests
     {
+        [Theory]
+        [InlineData(RadarOutputDimension.Note, "note")]
+        [InlineData(RadarOutputDimension.Peak, "peak")]
+        [InlineData(RadarOutputDimension.Sweep, "sweep")]
+        [InlineData(RadarOutputDimension.SlideTricky, "slide_tricky")]
+        [InlineData(RadarOutputDimension.SlideSequence, "slide_sequence")]
+        [InlineData(RadarOutputDimension.Jack, "jack")]
+        [InlineData(RadarOutputDimension.FittedConstant, "fitted_constant")]
+        public void EnumMapsToExistingPublicKey(
+            RadarOutputDimension dimension,
+            string expectedKey)
+        {
+            Assert.Equal(expectedKey, RadarOutputDimensions.Key(dimension));
+        }
+
         [Fact]
         public async Task ThinServiceReturnsLightweightSuccessfulSnapshot()
         {
@@ -25,6 +41,15 @@ namespace MajRadar.Tests
             Assert.Equal("ok", snapshot.Status);
             Assert.NotNull(snapshot.FittedConstant);
             Assert.All(snapshot.Scores.Values, value => Assert.NotNull(value));
+            Assert.Equal(
+                snapshot.Scores[RadarOutputDimensions.Note],
+                snapshot.GetScore(RadarOutputDimension.Note));
+            Assert.Equal(
+                snapshot.RawValues[RadarOutputDimensions.SlideTricky],
+                snapshot.GetRawValue(RadarOutputDimension.SlideTricky));
+            Assert.Equal(
+                snapshot.FittedConstant,
+                snapshot.GetScore(RadarOutputDimension.FittedConstant));
         }
 
         [Fact]

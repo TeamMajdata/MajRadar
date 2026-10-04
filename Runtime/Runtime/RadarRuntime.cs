@@ -81,6 +81,7 @@ public sealed class RadarResult
 /// Unity-free public entry point for Play and standalone callers. Instances do
 /// not retain chart or result state and may be reused concurrently when the
 /// injected extended-Slide provider is thread-safe.
+/// Without an injected provider, the built-in Play geometry snapshot is used.
 /// </summary>
 public sealed class RadarRuntime
 {
