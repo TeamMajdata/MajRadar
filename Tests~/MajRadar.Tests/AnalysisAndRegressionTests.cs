@@ -284,7 +284,7 @@ public sealed class AnalysisAndRegressionTests
 
     [Theory]
     [InlineData("(0){4}1,E", "non-finite or non-positive")]
-    [InlineData("(120){4}1K5[4:1],E", "Extended K Slides")]
+    [InlineData("(120){4}1P0Q0K5[4:1],E", "orbit type mismatch")]
     public async Task AdaptationFailuresReturnDataWithoutLeakingExceptions(
         string inote,
         string expectedError)

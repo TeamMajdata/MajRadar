@@ -285,15 +285,15 @@ public sealed class MajSimaiChartAdapterTests
     }
 
     [Fact]
-    public async Task ExtendedSlideReturnsFailureWithoutThrowingAcrossThePublicBoundary()
+    public async Task ExtendedSlideUsesFallbackWhenNoProviderIsSupplied()
     {
         var adapter = new MajSimaiChartAdapter();
 
         var result = await adapter.ParseAndAdaptAsync("(120){4}1K5[4:1],E");
 
-        Assert.False(result.IsSuccess);
-        Assert.Null(result.Chart);
-        Assert.NotEmpty(result.Errors);
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        var slide = Assert.Single(result.Chart!.Events, item => item.Kind == RadarEventKind.Slide);
+        Assert.True(Assert.Single(slide.SlidePath!).BarCount > 0);
     }
 
     [Fact]

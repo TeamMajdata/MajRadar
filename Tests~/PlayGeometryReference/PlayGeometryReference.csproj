@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <EmbeddedResource Include="SourceHashes.json" />
+    <AssemblyMetadata Include="PlayParsingSource" Value="$(PlayParsingSource)" />
+    <Compile Include="$(PlayParsingSource)/ComplexCircle.cs" Link="Play/ComplexCircle.cs" />
+    <Compile Include="$(PlayParsingSource)/SlideGeo.cs" Link="Play/SlideGeo.cs" />
+    <Compile Include="$(PlayParsingSource)/SlideCodeParser.cs" Link="Play/SlideCodeParser.cs" />
+    <Compile Include="$(PlayParsingSource)/SlideDataBuilder.cs" Link="Play/SlideDataBuilder.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/ParametricSlidePath.cs" Link="Play/Slide/ParametricSlidePath.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/SlidePathConstructor.cs" Link="Play/Slide/SlidePathConstructor.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/SlideParseMarker.cs" Link="Play/Slide/SlideParseMarker.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/SlideEndShape.cs" Link="Play/Slide/SlideEndShape.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/SlideArrowRawData.cs" Link="Play/Slide/SlideArrowRawData.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/SlideAreaRawData.cs" Link="Play/Slide/SlideAreaRawData.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/Segments/PathSegment.cs" Link="Play/Slide/Segments/PathSegment.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/Segments/LineSegment.cs" Link="Play/Slide/Segments/LineSegment.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/Segments/ArcSegment.cs" Link="Play/Slide/Segments/ArcSegment.cs" />
+    <Compile Include="$(PlayParsingSource)/Slide/Segments/CircleSegment.cs" Link="Play/Slide/Segments/CircleSegment.cs" />
+  </ItemGroup>
+  <Target Name="CheckPlayParsingSource" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(PlayParsingSource)' == ''" Text="Set PlayParsingSource to the pinned Play Assets/Scripts/Scenes/Game/Misc/Parsing directory." />
+  </Target>
+</Project>

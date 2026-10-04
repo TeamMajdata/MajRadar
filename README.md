@@ -58,7 +58,9 @@ RadarResult result = await _runtime.ParseAndAnalyzeAsync(
 
 ### Slidecode 依赖
 
-扩展Slidecode的长度算法需要依赖Play自身的Parser。
+未注入 provider 时，MajRadar 使用内置的 `DefaultExtendedSlideBarCountProvider`，
+它来自固定版本的 Play 纯 .NET 几何实现，后端无需安装 Unity。
+Play 仍应显式注入自己的 provider，以游戏当前使用的几何为准：
 
 ```csharp
 internal sealed class PlayExtendedSlideBarCountProvider
@@ -72,8 +74,14 @@ internal sealed class PlayExtendedSlideBarCountProvider
 }
 ```
 provider只接受SlideCode，例如 `1P6K7`，并且必须返回正数 arrow/bar count。
-provider 抛出的异常或非正结果会变成结构化适配失败。未提供 provider 时，普通谱面仍可
-正常分析；遇到 `K` Slide 会返回错误
+provider 抛出的异常或非正结果会变成结构化适配失败，不会再次尝试备用实现。
+只有构造时未提供 provider（或传入 `null`）才选择内置实现；普通 Slide 不受影响。
+备用实现无共享的单谱状态，可并发调用。数据库缓存版本应包含
+`DefaultExtendedSlideBarCountProvider.GeometryVersion`；宿主 provider 使用自己的版本标识。
+几何来源和对照测试见 [备用几何说明](Documentation~/FallbackGeometry.md)。
+
+NuGet 依赖最低 MajSimai 2.2.3，其中修复了 `1A3P9K5` 等带 A/B/C 路径的
+Slidecode 被误识别为 Touch 的问题。
 
 ### 取消与选歌状态
 
@@ -196,8 +204,10 @@ continues to own files, song metadata, chart type, artwork, and audio offsets.
 
 ### Extended Slide dependency
 
-Extended `K` Slides need gameplay geometry supplied by the host. MajRadar keeps
-the dependency narrow and does not reference MajdataPlay:
+When no provider is supplied, extended `K` Slides use the built-in
+`DefaultExtendedSlideBarCountProvider`, a pinned, Unity-free copy of Play's
+geometry. Play should still inject its own provider so its current gameplay
+geometry remains authoritative:
 
 ```csharp
 internal sealed class PlayExtendedSlideBarCountProvider
@@ -213,8 +223,16 @@ internal sealed class PlayExtendedSlideBarCountProvider
 
 The provider receives a normalized SlideCode such as `1P6K7`. It must return a
 positive arrow/bar count. Provider exceptions and non-positive results become a
-structured adaptation failure. Without a provider, ordinary charts still work,
-while a chart containing a `K` Slide returns an error instead of guessing.
+structured adaptation failure; they never trigger a retry through the fallback.
+The fallback is selected only when the constructor receives no provider or
+`null`. It creates a fresh path per call and can be shared concurrently.
+Include `DefaultExtendedSlideBarCountProvider.GeometryVersion` in persistent
+cache identities, or your host provider's own version when overriding it.
+See [fallback geometry](Documentation~/FallbackGeometry.md) for provenance and
+the independent Play reference fixtures.
+
+NuGet requires MajSimai 2.2.3 or newer. That release fixes Slidecodes containing
+A/B/C path commands, such as `1A3P9K5`, being misclassified as Touch notes.
 
 Ordinary Slides, feature parameters, regression coefficients, and score mapping
 are built in and are not dependency-injected.

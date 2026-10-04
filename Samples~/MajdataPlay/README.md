@@ -10,3 +10,8 @@ var snapshot = await ChartRadarService.AnalyzeAsync(chart, cancellationToken);
 
 Play remains responsible for selection generation, cancellation ownership,
 logging, UI updates, and caching the lightweight `ChartRadarSnapshot`.
+
+The explicitly injected Play provider takes precedence over MajRadar's built-in
+fallback. A host without Play geometry can use `new RadarRuntime()` directly;
+the fallback is selected only when no provider is supplied. Exceptions or
+non-positive results from an injected provider remain structured failures.
