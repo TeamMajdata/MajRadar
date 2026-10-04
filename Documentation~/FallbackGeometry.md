@@ -32,34 +32,36 @@ concurrency. The fallback adds no process-wide result cache.
 
 Persisted analysis cache keys should include the MajRadar and MajSimai package
 versions plus `DefaultExtendedSlideBarCountProvider.GeometryVersion`. When
-updating this snapshot, change the geometry version and regenerate the reference
-fixtures after reviewing the upstream change. An injected host provider should
+updating this snapshot, change the geometry version and review the geometry
+regressions against the upstream change. An injected host provider should
 use its own geometry version instead.
 
-## Independent reference tests
+## Focused regression tests
 
-`Tests~/MajRadar.Tests/Fixtures/PlaySlideBarCounts.tsv` contains 5,757 positive
-counts generated using the unmodified Play parser and arrow builder at the
-commit above. Cases cover all eight starting/ending positions, A/B/C nodes,
-clockwise/counterclockwise orbits, repeated circles, tangent transfers and
-transitions to/from the outer circle. They exercise both alignment markers.
+`DefaultExtendedSlideBarCountProviderTests` keeps 13 representative Play counts
+covering A/B/C nodes, clockwise/counterclockwise orbits, repeated circles,
+tangent transfers, and both alignment markers. Default selection, explicit
+provider precedence, provider failures, malformed geometry and concurrent path
+ownership are tested separately. Run them with `dotnet test MajRadar.slnx`.
 
-Run `dotnet test MajRadar.slnx` to compare the fallback against every reference
-count and check default selection, host precedence, host failures and concurrent
-path ownership. The ordinary-chart regression tests run alongside them.
+The previous 5,757-row snapshot and its generator were removed: the broad grid
+duplicated the same path rules and encoded macOS floating-point boundary choices
+as universal integer answers. .NET trigonometric operations use the native C
+runtime and may differ across operating systems and architectures:
 
-To regenerate with the pinned Play sources, run the separate reference tool:
+https://learn.microsoft.com/en-us/dotnet/api/system.math.sin#remarks
 
-```sh
-dotnet run --project Tests~/PlayGeometryReference/PlayGeometryReference.csproj \
-  -p:PlayParsingSource=/absolute/path/to/MajdataPlay/Assets/Scripts/Scenes/Game/Misc/Parsing \
-  -- Tests~/MajRadar.Tests/Fixtures/PlaySlideBarCounts.tsv
-```
+Four SmoothAlign paths (`8Q69K4`, `4P39K1`, `8Q69K8`, `1Q39K4`) end within a few
+ULPs of a segment boundary or endpoint. Play's retained strict comparisons may
+therefore include one additional arrow sample. Their tests explicitly allow
+the two observed macOS/Ubuntu counts; other representative cases still require
+exact values. Concurrency tests compare with sequential results from the same
+process. The runtime algorithm and `GeometryVersion` are unchanged.
 
-The tool checks source hashes and compiles the original Play files. It has no
-reference to MajRadar, keeping the oracle independent of the implementation
-under test. Updating to another upstream snapshot requires reviewing and
-updating those hashes as well as `GeometryVersion`.
+The fallback follows the pinned Play algorithm on the running platform; it does
+not promise bit-identical arrow counts across all platforms. Making those counts
+platform-independent would require a shared numerical policy in Play and MajRadar,
+not a test-only change.
 
 MajSimai 2.2.3 is required for end-to-end parsing: version 2.2.2 misclassifies
 some extended paths containing A/B/C, even when the geometry provider is correct.

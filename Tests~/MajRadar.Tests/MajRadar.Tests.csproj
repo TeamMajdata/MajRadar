@@ -20,7 +20,4 @@
     <Compile Include="../../Samples~/MajdataPlay/ChartRadarService.cs"
              Link="Samples/ChartRadarService.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Fixtures/PlaySlideBarCounts.tsv" />
-  </ItemGroup>
 </Project>

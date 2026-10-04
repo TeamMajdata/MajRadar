@@ -231,7 +231,7 @@ The fallback is selected only when the constructor receives no provider or
 Include `DefaultExtendedSlideBarCountProvider.GeometryVersion` in persistent
 cache identities, or your host provider's own version when overriding it.
 See [fallback geometry](Documentation~/FallbackGeometry.md) for provenance and
-the independent Play reference fixtures.
+the focused geometry and provider regression tests.
 
 NuGet requires MajSimai 2.2.3 or newer. That release fixes Slidecodes containing
 A/B/C path commands, such as `1A3P9K5`, being misclassified as Touch notes.
