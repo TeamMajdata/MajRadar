@@ -63,4 +63,5 @@ updating those hashes as well as `GeometryVersion`.
 
 MajSimai 2.2.3 is required for end-to-end parsing: version 2.2.2 misclassifies
 some extended paths containing A/B/C, even when the geometry provider is correct.
-The existing CI source-pin test uses the same parser fix at `fdb2a3e`.
+CI checks out the `2.2.3` release tag (`refs/tags/2.2.3`), aligned with the
+NuGet dependency in `MajRadar.csproj`. This tag includes the same parser fix.
