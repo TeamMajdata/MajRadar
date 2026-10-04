@@ -360,14 +360,19 @@ public sealed class AnalysisAndRegressionTests
 
     [Theory]
     [MemberData(nameof(RegressionVectors))]
-    public void EmbeddedRegressionMatchesFrozenPythonVectors(double[] raw, double expected)
+    public void EmbeddedRegressionMatchesPythonVectorsWithinOutputLimits(double[] raw, double expected)
     {
         var actual = new RegressionBetaModel().Predict(raw);
-        Assert.Equal(expected, actual, 9);
+        Assert.Equal(Math.Clamp(expected,
+            RegressionBetaModel.MinimumFittedConstant,
+            RegressionBetaModel.MaximumFittedConstant), actual, 9);
     }
 
     public static IEnumerable<object[]> RegressionVectors()
     {
+        // Unbounded Python oracle outputs exercise both ends of the configured range.
+        yield return Vector(new[] { 8.0, 15.0, 20000.0, 10.0, 3.0, 10.0, 1.0 }, -136224.7610705242);
+        yield return Vector(new[] { 8.0, 15.0, 20.0, 10.0, 3.0, 10.0, 1000.0 }, 435992.9429645393);
         yield return Vector(new[] { 6.727708533441772, 10.213333333333333, 0.0, 3.500000000000045, 2.3435703486210016, 5.223136339994041, 0.32687803060913356 }, 13.18826234659077);
         yield return Vector(new[] { 5.3448652850017435, 9.373333333333333, 5.151860505357921, 3.8688372913206157, 1.527537949608422, 3.4463156768134153, 0.5098107142089721 }, 13.04867082557079);
         yield return Vector(new[] { 6.556341447489688, 9.728309501643864, 2.7754445459480404, 4.146342997793008, 1.977721867042476, 10.365354504785971, 0.276398788581657 }, 13.335359785629928);
