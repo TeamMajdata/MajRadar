@@ -1,6 +1,8 @@
 # MajRadar
 
-[中文](#中文) | [English](#english)
+[算法细节](#Algorithm)
+
+[中文](#中文) | [English](#english) 
 
 <a id="中文"></a>
 
@@ -326,3 +328,376 @@ dotnet test MajRadar.slnx \
 
 Song discovery, metadata, audio offsets, visualizers, training, and experimental
 pipelines intentionally remain outside this runtime component.
+
+<a id="Algorithm"></a>
+
+## 特征计算方法
+
+下面是每个维度对应的计算方式以及映射方式。
+
+### 物量加权
+
+Note 和 Peak 共用物量的加权逻辑
+
+- Tap：`1`
+- 长度不超过半拍的 Hold：`1`
+- 长 Hold：`2`
+- Slide：SlidePrefab的BarCount /64，向上取整。
+
+- Touch：同拍相邻 Touch 合并为一个连通分量；相差不超过 {16}的相邻 Touch 也可以跨时间合并。
+
+无头 Slide 会保留并参与 Note、Peak，但不算作SlideGroup。
+
+### Note
+
+将谱面按固定1.5 s划分窗口，空谱返回 `0`。每个窗口的密度为：`density_i = workload_i / 1.5`
+
+设所有窗口密度的均值为 `μ`，总体标准差为 `σ`：
+
+```text
+NoteRaw = μ × (1 + 0.3 × σ / μ)
+        = μ + 0.3σ
+```
+
+### Peak
+
+以 `0.5 s` 为步长扫描候选位置。对候选起点 `t`，计算三个相邻 `1.5 s` 窗口的加权密度：
+
+`Peak(t) = 0.2D_{t-1} + 0.6D_{t} + 0.2D_{t+1}`
+
+候选按强度排序，最多选择三个相距至少 `4.5 s` 的峰值：
+
+```text
+PeakRaw = 0.5 × P1 + 0.3 × P2 + 0.2 × P3
+```
+
+Peak中连续单键扫键进行对数衰减，对第四个及之后的扫键权重乘上`1 / log2(n-2)`，避免简单连续扫键无限抬高 Peak。此外Touch 组权重降为0.5。
+
+### Sweep
+
+Sweep 分为四个阶段：
+
+1. 识别单手或双手 Sweep 主干；
+2. 将相邻 Sweep 连接为 family；
+3. 用DP寻找平均位移最低的双手动作分配；
+4. 聚合最强的多个peak window。
+
+识别规则包括：
+
+- 每拍最多三个外键；
+- 普通单位移动间隔不超过{12}；
+- 允许连续八分，以及减速到八分；
+- 长 Hold 可以连接跨两个键位的移动，避免锁手圈被打断；
+- 支持单键、双键、宽度变化、换手和折返；
+
+每个 Sweep batch 的基础负荷为：
+
+```text
+noteWeight = normalCount + 0.3 × exCount
+
+speedFactor = sqrt((1 / 12) / unitIntervalSeconds)
+
+base = noteWeight × speedFactor
+```
+
+连续单手简单 Sweep 在第 16 个 attack 后开始衰减：
+
+```text
+decay = excessRank^(-1/2)
+```
+
+双手动态规划按以下优先级寻找动作分配：
+
+1. 最少过快跳跃；
+2. 最少空闲手接管；
+3. 最短总环形键位距离；
+4. 最短主动移动距离。
+
+将不在处理键的手定义为空闲，计算它处理接下来的note之前需要走的距离。空闲手移动压力为：
+
+```text
+idlePressure =
+    distance × sqrt(max(1, distance / (elapsedSeconds × 10)))
+```
+
+动作负荷为：
+
+```text
+motion =
+    0.5 × idlePressure
+  + 1.0 × freeHandTakeover
+  + 2.0 × fastJumpViolation
+```
+
+重复规律动作的 motion 乘以 `0.1`。同方向连接和同方向换手分别提供局部 `0.2` bonus。
+
+最终选择top3不重合2 s窗口：
+
+```
+windowValue = baseDensity + motionDensity
+
+weight_k = k^(-1/2)
+```
+
+最终结果：
+
+```text
+SweepRaw =
+    Σ(weight_k × windowValue_k)
+    / Σweight_k
+```
+
+### SlideTricky
+
+SlideTricky 衡量 Slide头打下到启动，星星运动之间中插入其他操作所造成的错位压力，为了避免放手星星处理配置造成的异常情况，星星运动的计算时间取min(星星运动时间，一拍四分音符）
+
+对物件计算的主要加权规则：
+
+- 与 Slide 目标同位置的按键×1.5
+- 启动拍上的总物量x0.5，最高2.
+- Touch 组权重1.5，一次错位最多只算两组
+- 一次错位最多计算16个物件
+
+普通按键的速度因子由中位时间间隔计算：
+
+```text
+ratio = (30 / medianGapSeconds) / 180
+```
+
+```text
+speed =
+    sqrt(ratio)       , ratio < 1
+    min(1.5, ratio)   , ratio >= 1
+```
+
+多Slide增益为：
+
+```text
+concurrency = Σsqrt(pathCount)
+
+multiplier =
+    1 + 0.15 × max(0, concurrency - 1)
+```
+
+每次错位的负荷为：
+
+```text
+clusterLoad =
+    (internalLoad + launchLoad)
+    × objectCapFactor
+    × multiplier
+```
+
+最终取负荷最高Top5，做对数衰减：
+
+```text
+weight_k = 1 / log2(k + 1)
+```
+
+```text
+SlideTrickyRaw =
+    Σ(weight_k × clusterLoad_k)
+    / Σweight_k
+```
+
+### SlideSequence
+
+SlideSequence 衡量连续星星阵列的节奏、长度和是否存在双押。slide头之间间距<=四分音即可合并为一组。
+
+序列要求相邻有效节点至少间隔八分，避免扫星星的巨大加成，并通过动态规划依次优先选择：
+
+1. 更长的序列；
+2. 更多直接连接；
+3. 更高速度；
+4. 更高并发。
+
+节奏项：
+
+```text
+cadence =
+    average(0.5 / intervalSeconds)
+```
+
+并发项：
+
+```text
+concurrency =
+    average(max(0, Σsqrt(pathCount) - 1))
+```
+
+section 强度：
+
+```text
+sectionIntensity =
+    cadence × lengthFactor(sequenceLength)
+  + 0.5 × concurrency
+```
+
+长度在短序列阶段线性增长，超过 16 个节点后转为平方根增长，避免超长序列无限线性放大。
+
+最终取top5连接段落：
+
+```text
+weight_k = 1 / log2(k + 1)
+```
+
+```text
+SlideSequenceRaw =
+    Σ(weight_k × sectionIntensity_k)
+    / Σweight_k
+```
+
+### Jack
+
+Jack 在八个外键上分别寻找纵连。
+
+序列允许一次出现4个偏移纵连位置的tap（类AMABIE配置，纵连轴交互）；偏移之前必须有两个及以上的同键纵连才会将他们前后组合为纵连。
+基础强度为：
+
+```text
+strength =
+    normalAnchors //纵连物量
+  + 0.3 × exAnchors 
+  + 1.5 × (
+        normalInterruptions //外部飞键
+      + 0.3 × exInterruptions
+    )
+```
+根据首尾键计算等效十六分 BPM，以180bpm为基准：
+
+```text
+bpm =
+    15 × (anchorTimeCount - 1)
+    / spanSeconds
+
+speedFactor = (bpm / 180)^1.5
+```
+
+单个序列的速度加权强度：
+
+```text
+weightedStrength = strength × speedFactor
+```
+
+最终取Top5：
+
+```text
+JackRaw =
+    Σ(
+        weightedStrength_k
+        × 1.3
+        × 0.645^(k - 1)
+    )
+```
+
+### SlideCumulate
+
+SlideCumulate 衡量连续 Slide 阵列中逐步累积的错位压力。只参与拟合不在对外雷达中展示。
+
+设错位内部累计物件数为 `n`，内部总负荷为：
+
+```text
+internalTotal(n) =
+    n + 0.35 × log2(n!)
+```
+
+每个 section 的强度为：
+
+```text
+sectionIntensity =
+    0.8 × mean(onsetLoad)
+  + 0.2 × RMS(onsetLoad)
+```
+
+有效长度函数为：
+
+```text
+effectiveLength(n) = n
+```
+
+当 `n <= 5`；超过 5 后使用对数压缩：
+
+```text
+effectiveLength(n) =
+    5 × (
+        1 + log_5(
+            1 + (n - 5) / 5
+        )
+    )
+```
+
+最终结果按整谱时长归一化：
+
+```text
+SlideCumulateRaw =
+    Σ(
+        effectiveLength(sectionLength)
+        × sectionIntensity
+    )
+    / (chartDurationSeconds / 0.5)
+```
+
+### Fitted Constant
+
+七个维度按以下固定顺序输入模型：
+
+```text
+note
+peak
+sweep
+slide_tricky
+slide_sequence
+jack
+slide_cumulate
+```
+使用 center 和 scale 标准化：`z_i = (x_i - center_i) / scale_i`
+
+随后进行二次回归：
+
+```
+FittedConstant =
+    intercept
+  + Σ(a_i × z_i)
+  + Σ(b_ij × z_i × z_j) ,
+0 <= i <= j < 7
+```
+
+参数作为常量hardcode。
+
+
+### Raw 到 Score 的映射
+
+七个 raw 维度各自具有固定的四个 raw 锚点，使用线性插值，在官谱分布上拟合了整个分布，每维度最高记作 `T4Maximum` 
+
+```text
+T1 → 50
+T2 → 100
+T3 → 150
+T4 → 200
+
+score(x) =
+    S_i
+  + (S_(i+1) - S_i)
+    × (x - T_i)
+    / (T_(i+1) - T_i)
+```
+
+从 `T4` 到该维度的 `T4Maximum` 保持 200 分平台：
+
+```text
+T4 < x <= T4Maximum
+→ score = 200
+```
+
+为了兼容自制的难度，允许超越官谱的最高数值，留有200～250的headroom。超过 `T4Maximum` 后使用log渐进。在最初采用同样斜率避免跳变，然后对数衰减渐进到250。
+```text
+score(x) =
+    200
+  + headroom × (
+        1 - exp(
+            -initialSlope
+            × (x - T4Maximum)
+            / headroom
+        )
+    )
+```
