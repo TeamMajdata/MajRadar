@@ -400,6 +400,54 @@ public sealed class AnalysisAndRegressionTests
         };
     }
 
+    // Expected values were computed with MajSimai 2.2.2, where a slide with a head was a
+    // single note. MajSimai 3 reads it as a star head tap plus its slide, and the radar
+    // must not change.
+    [Theory]
+    [InlineData("(120){4}1-5[4:1],2,3,E",
+        10.90238276166452, 2.6666666666666665, 0.7999999999999999, 0,
+        0.3653943384499391, 0, 0, 0.3333333333333333)]
+    [InlineData("(120){4}1-5[4:1]*-7[4:1],2,3,E",
+        10.91190178804231, 2.6666666666666665, 0.7999999999999999, 0,
+        0.38809703203998563, 0.07024237842078739, 0, 0.3333333333333333)]
+    [InlineData("(120){4}1?-5[4:1],2,3,E",
+        10.751763631179315, 2, 0.6, 0, 0, 0, 0, 0)]
+    [InlineData("(120){4}1!-5[4:1],2,3,E",
+        10.751763631179315, 2, 0.6, 0, 0, 0, 0, 0)]
+    [InlineData(MixedSlideChart,
+        13.286733692704928, 8.728563302430421, 4.392852617380959, 3.651483716701106,
+        6.298857332207382, 0.9860430530030515, 0, 1.5280001840146846)]
+    public async Task SlideHeadModelKeepsTheMajSimai2RadarValues(
+        string inote,
+        double fittedConstant,
+        double note,
+        double peak,
+        double sweep,
+        double slideTricky,
+        double slideSequence,
+        double jack,
+        double slideCumulate)
+    {
+        var result = await new RadarRuntime().ParseAndAnalyzeAsync(inote);
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        var features = result.Analysis!.Features;
+        Assert.Equal(fittedConstant, result.FittedConstant!.Value, 12);
+        Assert.Equal(note, features[RadarFeatureNames.Note].Value!.Value, 12);
+        Assert.Equal(peak, features[RadarFeatureNames.Peak].Value!.Value, 12);
+        Assert.Equal(sweep, features[RadarFeatureNames.Sweep].Value!.Value, 12);
+        Assert.Equal(slideTricky, features[RadarFeatureNames.SlideTricky].Value!.Value, 12);
+        Assert.Equal(slideSequence, features[RadarFeatureNames.SlideSequence].Value!.Value, 12);
+        Assert.Equal(jack, features[RadarFeatureNames.Jack].Value!.Value, 12);
+        Assert.Equal(slideCumulate, features[RadarFeatureNames.SlideCumulate].Value!.Value, 12);
+    }
+
+    // Headed, same-head, headless (? and !) and marked slides next to ordinary notes.
+    private const string MixedSlideChart =
+        "(150){8}1-5[8:1],2,3?-7[8:1],4,5-1[8:1]*-3[8:1]*>8[8:2],6/7," +
+        "8!-4[8:1]/1b-5[8:1]m,2x,3$-6[4:1],{16}4,5,6,7,8@-3[8:1],1," +
+        "2-6[8:1]/3-7[8:1],4h[8:1],B1,C,5V31[4:1],1-3-5-7[4:3],,,,E";
+
     private static async Task<RadarAnalysisResult> Analyze(string inote)
     {
         var adapted = await new MajSimaiChartAdapter().ParseAndAdaptAsync(inote);

@@ -1,9 +1,7 @@
 {
   "name": "MajRadar",
   "rootNamespace": "MajRadar",
-  "references": [
-    "MajSimai"
-  ],
+  "references": [],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

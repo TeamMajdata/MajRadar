@@ -45,7 +45,7 @@ jobs:
         with:
           repository: TeamMajdata/MajSimai
           # Keep this tag aligned with the NuGet version in MajRadar.csproj.
-          ref: refs/tags/2.2.3
+          ref: refs/tags/3.0.0
           path: external/MajSimai
       - uses: actions/setup-dotnet@v4
         with:
