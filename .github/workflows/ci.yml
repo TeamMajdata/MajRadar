@@ -35,27 +35,3 @@ jobs:
           name: MajRadar-nuget
           path: artifacts/*.nupkg
           if-no-files-found: error
-
-  play-majsimai-pin:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Checkout pinned MajSimai
-        uses: actions/checkout@v4
-        with:
-          repository: TeamMajdata/MajSimai
-          ref: fdb2a3e39d8997a0abbf8b4679062d854473cc77
-          path: external/MajSimai
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Restore with pinned MajSimai
-        run: >-
-          dotnet restore MajRadar.slnx
-          -p:MajSimaiProject="$GITHUB_WORKSPACE/external/MajSimai/MajSimai.csproj"
-
-      - name: Test with pinned MajSimai
-        run: >-
-          dotnet test MajRadar.slnx --no-restore -c Release
-          -p:MajSimaiProject="$GITHUB_WORKSPACE/external/MajSimai/MajSimai.csproj"

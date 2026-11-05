@@ -17,7 +17,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
-    # Both CI jobs must pass before this job starts.
+    # The CI job must pass before this job starts.
     needs: validate
     runs-on: ubuntu-latest
     permissions:

@@ -237,6 +237,98 @@ public sealed class MajSimaiChartAdapterTests
     }
 
     [Fact]
+    public async Task HeadedSlideReadsHeadMarkersFromTheStarHeadAndPathMarkersFromTheSlide()
+    {
+        var adapter = new MajSimaiChartAdapter();
+
+        var result = await adapter.ParseAndAdaptAsync("(120){4}1bx$-5[4:1]m,E");
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        var objects = result.Chart!.Events.Where(item => item.Kind != RadarEventKind.Timing).ToArray();
+        Assert.Equal(2, objects.Length);
+        var head = Assert.Single(objects, item => item.Kind == RadarEventKind.Tap);
+        var slide = Assert.Single(objects, item => item.Kind == RadarEventKind.Slide);
+        Assert.True(head.IsSlideHead);
+        Assert.Equal(head.EventId, slide.HeadEventId);
+        Assert.NotNull(slide.SlideGroupId);
+        Assert.Equal("1", head.Position);
+        Assert.Equal(slide.RawToken, head.RawToken);
+        Assert.Equal(slide.DeclarationOrder, head.DeclarationOrder);
+        Assert.True(head.IsBreak);
+        Assert.True(head.IsEx);
+        Assert.False(head.IsMine);
+        Assert.False(slide.IsBreak);
+        Assert.False(slide.IsEx);
+        Assert.True(slide.IsMine);
+        Assert.True(head.Flags!["force_star"]);
+        Assert.True(slide.Flags!["force_star"]);
+    }
+
+    [Fact]
+    public async Task SameHeadGroupSharesOneStarHeadAndOneSlideGroup()
+    {
+        var adapter = new MajSimaiChartAdapter();
+
+        var result = await adapter.ParseAndAdaptAsync("(120){4}1-5[4:1]*-7[4:1]b*>3[4:2],E");
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        var objects = result.Chart!.Events.Where(item => item.Kind != RadarEventKind.Timing).ToArray();
+        var head = Assert.Single(objects, item => item.Kind == RadarEventKind.Tap);
+        var slides = objects.Where(item => item.Kind == RadarEventKind.Slide)
+            .OrderBy(item => item.DeclarationOrder)
+            .ToArray();
+        Assert.Equal(3, slides.Length);
+        Assert.True(head.IsSlideHead);
+        Assert.All(slides, item => Assert.Equal(head.EventId, item.HeadEventId));
+        Assert.Single(slides.Select(item => item.SlideGroupId).Distinct());
+        Assert.NotNull(slides[0].SlideGroupId);
+        Assert.Equal(new[] { "1-5[4:1]", "1-7[4:1]", "1>3[4:2]" }, slides.Select(item => item.RawToken));
+        Assert.Equal(slides[0].DeclarationOrder, head.DeclarationOrder);
+        Assert.Equal(new[] { false, true, false }, slides.Select(item => item.IsBreak!.Value));
+    }
+
+    [Theory]
+    [InlineData("(120){4}1?-5[4:1],E")]
+    [InlineData("(120){4}1!-5[4:1],E")]
+    [InlineData("(120){4}1b?-5[4:1],E")]
+    public async Task HeadlessSlideHasNoStarHeadOrSlideGroup(string inote)
+    {
+        var adapter = new MajSimaiChartAdapter();
+
+        var result = await adapter.ParseAndAdaptAsync(inote);
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        var slide = Assert.Single(result.Chart!.Events, item => item.Kind != RadarEventKind.Timing);
+        Assert.Equal(RadarEventKind.Slide, slide.Kind);
+        Assert.Null(slide.HeadEventId);
+        Assert.Null(slide.SlideGroupId);
+        Assert.False(slide.IsBreak);
+        Assert.False(slide.Flags!["force_star"]);
+    }
+
+    [Fact]
+    public async Task HeadedSlideKeepsItsGroupNextToAHeadlessSlideOfTheSameButton()
+    {
+        var adapter = new MajSimaiChartAdapter();
+
+        var result = await adapter.ParseAndAdaptAsync("(120){4}1-5[4:1]/1-3[4:1]*-7[4:1],E");
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        var events = result.Chart!.Events;
+        var heads = events.Where(item => item.Kind == RadarEventKind.Tap).ToArray();
+        var slides = events.Where(item => item.Kind == RadarEventKind.Slide)
+            .OrderBy(item => item.DeclarationOrder)
+            .ToArray();
+        Assert.Equal(2, heads.Length);
+        Assert.All(heads, item => Assert.True(item.IsSlideHead));
+        Assert.Equal(3, slides.Length);
+        Assert.NotEqual(slides[0].SlideGroupId, slides[1].SlideGroupId);
+        Assert.Equal(slides[1].SlideGroupId, slides[2].SlideGroupId);
+        Assert.Equal(slides[1].HeadEventId, slides[2].HeadEventId);
+        Assert.NotEqual(slides[0].HeadEventId, slides[1].HeadEventId);
+    }
+
+    [Fact]
     public async Task DistributesConnectedSlideTimeByFixedStandardBarCounts()
     {
         var adapter = new MajSimaiChartAdapter();

@@ -277,10 +277,10 @@ else if (!result.IsCancelled)
 
 ### MajdataPlay source integration
 
-MajdataPlay should pin MajRadar as a Git submodule beside its existing MajSimai
-submodule. Unity compiles `Runtime/` through `MajRadar.asmdef`, which references
-the single existing `MajSimai` assembly. Do not install the MajRadar NuGet package
-into the same Unity project.
+MajdataPlay should pin MajRadar as a Git submodule. Unity compiles `Runtime/`
+through `MajRadar.asmdef`, which uses the auto-referenced MajSimai 3 plugin DLL
+that Play installs from the `Lingfeng-bbben.MajSimai` NuGet package. Do not
+install the MajRadar NuGet package into the same Unity project.
 
 MajRadar is code-only and ignores Unity-generated `*.meta` files inside the
 submodule. The Play repository should still commit the
@@ -299,7 +299,7 @@ The NuGet package targets `netstandard2.1` and declares one MajSimai package
 dependency. Pull requests build and test; main-branch pushes publish unique CI
 prereleases, while `v*` tags publish stable versions.
 
-Compatibility tests can compile against a source checkout matching Play's pin:
+Compatibility tests can compile against a MajSimai source checkout:
 
 ```sh
 dotnet test MajRadar.slnx \

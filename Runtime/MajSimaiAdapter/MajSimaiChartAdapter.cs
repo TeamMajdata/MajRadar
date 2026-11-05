@@ -73,23 +73,28 @@ public sealed class MajSimaiChartAdapter
                 PendingEvent? currentHead = null;
                 int? currentSlideGroupId = null;
                 int? currentSlideStartPosition = null;
-                foreach (var note in timing.Notes)
+                var notes = timing.Notes;
+                foreach (var note in notes)
                 {
                     if (cancellationToken.IsCancellationRequested) return Cancelled();
+                    // A star head is read together with the slide that owns it, so a
+                    // headed slide stays one declaration as it was before MajSimai 3.
+                    if (SimaiSlideHeads.IsSlideHead(note)) continue;
                     declarationOrder++;
                     if (note.Type == SimaiNoteType.Slide)
                     {
-                        if (note.IsSlideNoHead && containsExplicitNoHead)
+                        var starHead = SimaiSlideHeads.HeadOf(note, notes);
+                        if (starHead is null && containsExplicitNoHead)
                         {
                             pending.Add(CreateSlide(
-                                note, timing, declarationTime, declarationBeat, declarationOrder,
+                                note, null, timing, declarationTime, declarationBeat, declarationOrder,
                                 null, null, timeline));
                             continue;
                         }
-                        if (!note.IsSlideNoHead)
+                        if (starHead is not null)
                         {
                             currentHead = CreateHead(
-                                note, timing, declarationTime, declarationBeat, declarationOrder);
+                                note, starHead, timing, declarationTime, declarationBeat, declarationOrder);
                             pending.Add(currentHead);
                             currentSlideGroupId = ++slideGroupId;
                             currentSlideStartPosition = note.StartPosition;
@@ -103,7 +108,7 @@ public sealed class MajSimaiChartAdapter
                         }
 
                         pending.Add(CreateSlide(
-                            note, timing, declarationTime, declarationBeat, declarationOrder,
+                            note, starHead, timing, declarationTime, declarationBeat, declarationOrder,
                             currentHead?.TemporaryId, currentSlideGroupId, timeline));
                         continue;
                     }
@@ -174,8 +179,13 @@ public sealed class MajSimaiChartAdapter
         }
     }
 
+    /// <summary>
+    /// Creates the event of one slide path. <paramref name="starHead"/> is the star head
+    /// owned by the slide, or <see langword="null"/> for a headless slide.
+    /// </summary>
     private PendingEvent CreateSlide(
         SimaiNote note,
+        SimaiNote? starHead,
         SimaiTimingPoint timing,
         double declarationTime,
         BeatPosition declarationBeat,
@@ -202,17 +212,24 @@ public sealed class MajSimaiChartAdapter
             Position = note.StartPosition.ToString(),
             SlideGroupId = slideGroupId,
             SlidePath = _slidePaths.Resolve(note.RawContent, startTime, endTime),
-            IsBreak = note.IsSlideBreak,
+            // On a MajSimai 3 slide note IsBreak and IsMine describe the path.
+            IsBreak = note.IsBreak,
             IsEx = false,
-            IsMine = note.IsMineSlide,
-            Flags = Flags(note),
+            IsMine = note.IsMine,
+            Flags = Flags(note, starHead),
             RawToken = note.RawContent,
             DeclarationOrder = order
         }, timing.RawTextPosition, headTemporaryId);
     }
 
+    /// <summary>
+    /// Creates the tap event of a star head. The owning <paramref name="slide"/> gives the
+    /// position and the raw token (the whole slide text, as before MajSimai 3);
+    /// <paramref name="starHead"/> gives the break, EX, mine and star markers.
+    /// </summary>
     private static PendingEvent CreateHead(
-        SimaiNote note,
+        SimaiNote slide,
+        SimaiNote starHead,
         SimaiTimingPoint timing,
         double declarationTime,
         BeatPosition declarationBeat,
@@ -226,12 +243,12 @@ public sealed class MajSimaiChartAdapter
             EndTimeSeconds = declarationTime,
             StartBeat = declarationBeat,
             EndBeat = declarationBeat,
-            Position = note.StartPosition.ToString(),
-            IsBreak = note.IsBreak,
-            IsEx = note.IsEx,
-            IsMine = note.IsMine,
-            Flags = Flags(note),
-            RawToken = note.RawContent,
+            Position = slide.StartPosition.ToString(),
+            IsBreak = starHead.IsBreak,
+            IsEx = starHead.IsEx,
+            IsMine = starHead.IsMine,
+            Flags = Flags(slide, starHead),
+            RawToken = slide.RawContent,
             DeclarationOrder = order
         }, timing.RawTextPosition);
 
@@ -268,7 +285,7 @@ public sealed class MajSimaiChartAdapter
             IsBreak = note.IsBreak,
             IsEx = note.IsEx,
             IsMine = note.IsMine,
-            Flags = Flags(note),
+            Flags = Flags(note, note),
             RawToken = note.RawContent,
             DeclarationOrder = order
         }, timing.RawTextPosition);
@@ -277,14 +294,19 @@ public sealed class MajSimaiChartAdapter
     private static string TouchPosition(SimaiNote note) =>
         note.TouchArea == 'C' ? "C" : $"{note.TouchArea}{note.StartPosition}";
 
-    private static IReadOnlyDictionary<string, bool> Flags(SimaiNote note) =>
+    /// <summary>
+    /// Builds the event flags. <paramref name="markers"/> carries the star and hanabi markers:
+    /// the note itself, the star head of a headed slide, or <see langword="null"/> for a
+    /// headless slide, which has none.
+    /// </summary>
+    private static IReadOnlyDictionary<string, bool> Flags(SimaiNote note, SimaiNote? markers) =>
         new Dictionary<string, bool>
         {
             ["using_sv"] = note.UsingSV,
-            ["force_star"] = note.IsForceStar,
-            ["fake_rotate"] = note.IsFakeRotate,
-            ["hanabi"] = note.IsHanabi,
-            ["tap_head"] = note.IsTapHeadSlide
+            ["force_star"] = markers?.IsForceStar == true,
+            ["fake_rotate"] = markers?.IsFakeRotate == true,
+            ["hanabi"] = markers?.IsHanabi == true,
+            ["tap_head"] = markers?.IsTapHeadSlide == true
         };
 
     private static void AddTimingEvents(Timeline timeline, List<PendingEvent> output)

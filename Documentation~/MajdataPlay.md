@@ -1,8 +1,9 @@
 # MajdataPlay integration
 
-MajdataPlay should pin this repository as `Assets/Plugins/MajRadar` and keep its
-existing `Assets/Plugins/MajSimai` pin. `MajRadar.asmdef` references that one
-MajSimai assembly; the NuGet package is not installed into the Unity project.
+MajdataPlay should pin this repository as `Assets/Plugins/MajRadar`. MajSimai 3
+comes from Play's `Lingfeng-bbben.MajSimai` NuGet package as an auto-referenced
+plugin DLL, which `MajRadar.asmdef` uses; the MajRadar NuGet package is not
+installed into the Unity project.
 
 Extended `K` Slides are resolved through `IExtendedSlideBarCountProvider`. The
 sample provider calls Play's existing `SlideCodeParser` and `SlideDataBuilder`,
