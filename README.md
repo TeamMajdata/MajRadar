@@ -82,8 +82,8 @@ provider 抛出的异常或非正结果会变成结构化适配失败，不会�
 `DefaultExtendedSlideBarCountProvider.GeometryVersion`；宿主 provider 使用自己的版本标识。
 几何来源和对照测试见 [备用几何说明](Documentation~/FallbackGeometry.md)。
 
-NuGet 依赖最低 MajSimai 2.2.3，其中修复了 `1A3P9K5` 等带 A/B/C 路径的
-Slidecode 被误识别为 Touch 的问题。
+NuGet 依赖最低 MajSimai 3.0.1，并使用其独立星星头与 Slide 路径模型。
+该版本在计算谱面 MD5 / SHA-256 时移除 `||` 注释和空白；注释或排版变化不会改变谱面哈希及雷达分析结果。
 
 ### 取消与选歌状态
 
@@ -131,6 +131,9 @@ else if (!result.IsCancelled)
 dotnet test MajRadar.slnx
 dotnet pack MajRadar.csproj -c Release
 ```
+
+在 MajdataPlay 子模块内运行这些命令时，添加
+`--artifacts-path <Unity工程外的绝对路径>`，避免生成的 DLL 被 Unity 重复导入。
 
 NuGet包以 `netstandard2.1` 为目标，包含MajSimai包依赖。
 
@@ -235,8 +238,12 @@ cache identities, or your host provider's own version when overriding it.
 See [fallback geometry](Documentation~/FallbackGeometry.md) for provenance and
 the focused geometry and provider regression tests.
 
-NuGet requires MajSimai 2.2.3 or newer. That release fixes Slidecodes containing
-A/B/C path commands, such as `1A3P9K5`, being misclassified as Touch notes.
+NuGet requires MajSimai 3.0.1 or newer and uses its separate slide-head and path model.
+Chart MD5 / SHA-256 hashes exclude `||` comments and white space, so comment or
+formatting changes preserve both chart hashes and radar analysis results.
+
+MajSimai also includes the fix for Slidecodes containing A/B/C path commands,
+such as `1A3P9K5`, that older versions misclassified as Touch notes.
 
 Ordinary Slides, feature parameters, regression coefficients, and score mapping
 are built in and are not dependency-injected.
@@ -298,7 +305,7 @@ else if (!result.IsCancelled)
 ### MajdataPlay source integration
 
 MajdataPlay should pin MajRadar as a Git submodule. Unity compiles `Runtime/`
-through `MajRadar.asmdef`, which uses the auto-referenced MajSimai 3 plugin DLL
+through `Runtime/net.majdata.majradar.asmdef`, which uses the auto-referenced MajSimai 3.0.1 plugin DLL
 that Play installs from the `Lingfeng-bbben.MajSimai` NuGet package. Do not
 install the MajRadar NuGet package into the same Unity project.
 
@@ -314,6 +321,10 @@ that require stable GUIDs.
 dotnet test MajRadar.slnx
 dotnet pack MajRadar.csproj -c Release
 ```
+
+When running these commands inside the MajdataPlay submodule, add
+`--artifacts-path /absolute/path/outside/MajdataPlay` so Unity does not import
+the generated DLLs alongside the source assembly.
 
 The NuGet package targets `netstandard2.1` and declares one MajSimai package
 dependency. Pull requests build and test; main-branch pushes publish unique CI

@@ -8,7 +8,7 @@
     <AssemblyName>MajRadar</AssemblyName>
     <RootNamespace>MajRadar</RootNamespace>
     <PackageId>TeamMajdata.MajRadar</PackageId>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>0.2.0</VersionPrefix>
     <Authors>Team Majdata</Authors>
     <Description>Radar analysis and constant estimation for Simai charts.</Description>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
@@ -21,7 +21,7 @@
     <Compile Include="Runtime/**/*.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(MajSimaiProject)' == ''">
-    <PackageReference Include="Lingfeng-bbben.MajSimai" Version="3.0.0" />
+    <PackageReference Include="Lingfeng-bbben.MajSimai" Version="3.0.1" />
   </ItemGroup>
   <ItemGroup Condition="'$(MajSimaiProject)' != ''">
     <ProjectReference Include="$(MajSimaiProject)" />

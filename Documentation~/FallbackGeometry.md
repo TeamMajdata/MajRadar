@@ -63,7 +63,8 @@ not promise bit-identical arrow counts across all platforms. Making those counts
 platform-independent would require a shared numerical policy in Play and MajRadar,
 not a test-only change.
 
-MajSimai 2.2.3 is required for end-to-end parsing: version 2.2.2 misclassifies
-some extended paths containing A/B/C, even when the geometry provider is correct.
-CI checks out the `2.2.3` release tag (`refs/tags/2.2.3`), aligned with the
-NuGet dependency in `MajRadar.csproj`. This tag includes the same parser fix.
+MajRadar requires MajSimai 3.0.1 for end-to-end parsing. This includes the fix
+for extended paths containing A/B/C that version 2.2.2 misclassified, as well as
+the separate slide-head and path model introduced in MajSimai 3.
+CI checks out the `3.0.1` release tag (`refs/tags/3.0.1`), aligned with the
+NuGet dependency in `MajRadar.csproj`.
